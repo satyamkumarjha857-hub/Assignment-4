@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 4: Secure Connect & Communication Platform</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <div class="header-content">
+        <h1>🔒 Secure Connect & Communication Platform</h1>
+        <p class="subtitle">Lab 4: Web Dev III (Unit 4) &bull; Node.js, Express, JWT, bcrypt, Socket.IO & EventEmitter</p>
+      </div>
+      <div class="user-status-pill" id="userStatusPill">
+        <span class="status-dot"></span>
+        <span id="statusText">Not Logged In</span>
+      </div>
+    </header>
+
+    <main class="grid-layout">
+      <!-- Section 1: Authentication -->
+      <section class="card auth-card">
+        <h2>1. Authentication (JWT & bcrypt)</h2>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchAuthTab('signup')">Sign Up</button>
+          <button class="tab-btn" onclick="switchAuthTab('login')">Log In</button>
+        </div>
+
+        <!-- Signup Form -->
+        <form id="signupForm" class="auth-form" onsubmit="handleSignup(event)">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="signupUsername" placeholder="e.g. victor" value="victor" required>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="signupEmail" placeholder="e.g. victor@example.com" value="victor@example.com" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="signupPassword" placeholder="e.g. 123456" value="123456" required>
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="signupRole">
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Sign Up (POST /api/auth/signup)</button>
+        </form>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="auth-form hidden" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="e.g. victor@example.com" value="victor@example.com" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="e.g. 123456" value="123456" required>
+          </div>
+          <button type="submit" class="btn btn-success">Log In (POST /api/auth/login)</button>
+        </form>
+
+        <div class="token-container">
+          <label>Active JWT Token:</label>
+          <div class="token-box" id="tokenDisplay">No token stored</div>
+          <div class="token-actions">
+            <button class="btn btn-sm btn-outline" onclick="copyToken()">Copy Token</button>
+            <button class="btn btn-sm btn-danger" onclick="logout()">Clear Token (Logout)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Protected Notes API -->
+      <section class="card notes-card">
+        <div class="card-header-flex">
+          <h2>2. Protected Notes API (CRUD)</h2>
+          <button class="btn btn-sm btn-secondary" onclick="fetchNotes()">Refresh Notes (GET /api/notes)</button>
+        </div>
+
+        <form id="createNoteForm" onsubmit="handleCreateNote(event)">
+          <div class="form-group">
+            <label>Note Title</label>
+            <input type="text" id="noteTitle" placeholder="e.g. My First Note" value="My First Note" required>
+          </div>
+          <div class="form-group">
+            <label>Content</label>
+            <textarea id="noteContent" rows="2" placeholder="e.g. This is my first note of web dev -III" required>This is my first note of web dev -III</textarea>
+          </div>
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">Create Note (POST /api/notes)</button>
+            <button type="button" class="btn btn-outline" onclick="testWithoutToken()">Test Without Token (Expect 403)</button>
+          </div>
+        </form>
+
+        <div class="notes-list-section">
+          <h3>Your Notes</h3>
+          <div id="notesContainer" class="notes-grid">
+            <p class="placeholder-text">Click "Log In" and "Refresh Notes" to see your notes.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Real-Time Chat (Socket.IO) -->
+      <section class="card chat-card full-width">
+        <div class="card-header-flex">
+          <h2>3. Real-Time Chat (Socket.IO & WebSockets)</h2>
+          <div class="chat-room-badge">
+            Room: <span id="currentRoomText">general</span>
+          </div>
+        </div>
+
+        <div class="chat-controls">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Chat Handle / Name</label>
+              <input type="text" id="chatUsername" placeholder="e.g. Aditi or Rohan" value="Aditi">
+            </div>
+            <div class="form-group">
+              <label>Room</label>
+              <input type="text" id="chatRoom" value="general">
+            </div>
+            <button class="btn btn-secondary align-bottom" onclick="joinRoom()">Join Room</button>
+            <button class="btn btn-outline align-bottom" onclick="simulateLabChat()">Run Lab Fig 3 Simulation</button>
+          </div>
+        </div>
+
+        <div class="chat-window" id="chatMessages">
+          <div class="system-msg">Connected to Socket.IO. Join a room and send messages in real-time.</div>
+        </div>
+
+        <form id="chatForm" class="chat-input-row" onsubmit="sendChatMessage(event)">
+          <input type="text" id="chatMessageInput" placeholder="Type a message... (e.g. Hey team, backend is ready 🎉)" required>
+          <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+      </section>
+    </main>
+
+    <!-- Section 4: Live Console / API Response Inspector -->
+    <section class="card console-card">
+      <div class="card-header-flex">
+        <h2>4. Live API Response Inspector</h2>
+        <button class="btn btn-sm btn-outline" onclick="clearConsole()">Clear</button>
+      </div>
+      <pre id="apiConsole" class="console-box">Ready. Actions and responses will be displayed here in JSON format...</pre>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
